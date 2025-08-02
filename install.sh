@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GITHUB_REPO="leamas-ai/leamas"
+GITHUB_REPO="leamas-ai/leamas.sh"
 GITHUB_BRANCH="main"
 LEAMAS_SCRIPT_URL="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/leamas"
 INSTALL_DIR="$HOME/leamas"
