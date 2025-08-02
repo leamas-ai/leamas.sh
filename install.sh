@@ -35,6 +35,7 @@ install_leamas() {
     fi
     
     log "Installing leamas to $INSTALL_DIR..."
+    mkdir -p "$INSTALL_DIR"
     cp "$temp_file" "$INSTALL_DIR/leamas"
     chmod +x "$INSTALL_DIR/leamas"
     
@@ -43,16 +44,16 @@ install_leamas() {
     log "leamas installed successfully!"
     echo
     log "To use leamas from anywhere, add this to your shell profile:"
-    echo "    export PATH=\"\$HOME:\$PATH\""
+    echo "    export PATH=\"\$HOME/leamas:\$PATH\""
     echo
     log "For bash, add to ~/.bashrc or ~/.bash_profile:"
-    echo "    echo 'export PATH=\"\$HOME:\$PATH\"' >> ~/.bashrc"
+    echo "    echo 'export PATH=\"\$HOME/leamas:\$PATH\"' >> ~/.bashrc"
     echo
     log "For zsh, add to ~/.zshrc:"
-    echo "    echo 'export PATH=\"\$HOME:\$PATH\"' >> ~/.zshrc"
+    echo "    echo 'export PATH=\"\$HOME/leamas:\$PATH\"' >> ~/.zshrc"
     echo
     log "For fish, run:"
-    echo "    set -U fish_user_paths \$HOME \$fish_user_paths"
+    echo "    set -U fish_user_paths \$HOME/leamas \$fish_user_paths"
     echo
     log "After updating your shell profile, restart your terminal or run:"
     echo "    source ~/.bashrc  # or ~/.zshrc"
