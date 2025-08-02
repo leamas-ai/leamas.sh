@@ -5,7 +5,7 @@ The missing package manager for Claude. Install AI agents and commands with a si
 ## Quick Install
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/leamas-ai/leamas/main/install.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/leamas-ai/leamas.sh/main/install.sh)"
 ```
 
 This installs the `leamas` CLI to `$HOME/leamas/leamas` and guides you through adding it to your PATH.
