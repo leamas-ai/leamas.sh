@@ -1,0 +1,85 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.settings/
+*.sublime-workspace
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Backup files
+*.bak
+*.backup
+
+# Environment variables
+.env
+.env.local
+
+# Local testing directories (if any)
+test-kits/
+local-test/
+
+# Cache (but not .cache/leamas which is used by the tool)
+cache/
+
+# Node modules (if any future web components)
+node_modules/
+
+# Python
+*.pyc
+__pycache__/
+venv/
+
+# Build outputs
+dist/
+build/
+
+# LLM files
+CLAUDE.md
+.claude/
+
+# Kit git metadata (keep files, exclude git data)
+kits/*/.git/
+kits/*/.gitignore
+kits/*/.gitattributes
+
+# No web files
+index.php
+favicon.ico
+styles/
+img/

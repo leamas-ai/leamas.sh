@@ -1,0 +1,96 @@
+{
+    "generated_at": "2025-08-02 18:16:40",
+    "generator": "get_meta.php",
+    "version": "1.0.0",
+    "agents": [
+        {
+            "name": "awesome-claude-agents",
+            "path": "/Applications/MAMP/htdocs/misc/leamas/kits/agents/awesome-claude-agents",
+            "repo_url": "https://github.com/vijaythecoder/awesome-claude-agents",
+            "has_readme": true,
+            "last_modified": "2025-08-01 07:58:24",
+            "size": 650125,
+            "size_human": "634.89 KB"
+        },
+        {
+            "name": "awesome-claude-code-agents",
+            "path": "/Applications/MAMP/htdocs/misc/leamas/kits/agents/awesome-claude-code-agents",
+            "repo_url": "https://github.com/hesreallyhim/awesome-claude-code-agents",
+            "has_readme": true,
+            "last_modified": "2025-08-01 07:21:24",
+            "size": 71328,
+            "size_human": "69.66 KB"
+        },
+        {
+            "name": "claude-agents",
+            "path": "/Applications/MAMP/htdocs/misc/leamas/kits/agents/claude-agents",
+            "repo_url": "https://github.com/iannuttall/claude-agents",
+            "has_readme": true,
+            "last_modified": "2025-08-01 07:57:46",
+            "size": 87258,
+            "size_human": "85.21 KB"
+        },
+        {
+            "name": "claude-code-sub-agents",
+            "path": "/Applications/MAMP/htdocs/misc/leamas/kits/agents/claude-code-sub-agents",
+            "repo_url": "https://github.com/lst97/claude-code-sub-agents",
+            "has_readme": true,
+            "last_modified": "2025-08-01 07:48:53",
+            "size": 15522219,
+            "size_human": "14.8 MB"
+        },
+        {
+            "name": "claude-code-subagents",
+            "path": "/Applications/MAMP/htdocs/misc/leamas/kits/agents/claude-code-subagents",
+            "repo_url": "https://github.com/0xfurai/claude-code-subagents",
+            "has_readme": true,
+            "last_modified": "2025-08-01 07:47:18",
+            "size": 544970,
+            "size_human": "532.2 KB"
+        },
+        {
+            "name": "claude-sub-agent",
+            "path": "/Applications/MAMP/htdocs/misc/leamas/kits/agents/claude-sub-agent",
+            "repo_url": "https://github.com/zhsama/claude-sub-agent",
+            "has_readme": true,
+            "last_modified": "2025-08-01 07:58:36",
+            "size": 446929,
+            "size_human": "436.45 KB"
+        },
+        {
+            "name": "wshobson",
+            "path": "/Applications/MAMP/htdocs/misc/leamas/kits/agents/wshobson",
+            "repo_url": "https://github.com/wshobson/agents.git",
+            "has_readme": true,
+            "last_modified": "2025-08-01 06:45:16",
+            "size": 219915,
+            "size_human": "214.76 KB"
+        }
+    ],
+    "commands": [
+        {
+            "name": "claude-code-requirements-builder",
+            "path": "/Applications/MAMP/htdocs/misc/leamas/kits/commands/claude-code-requirements-builder",
+            "repo_url": "https://github.com/rizethereum/claude-code-requirements-builder",
+            "has_readme": true,
+            "last_modified": "2025-08-02 18:16:08",
+            "size": 76519,
+            "size_human": "74.73 KB"
+        },
+        {
+            "name": "claude-sub-agent",
+            "path": "/Applications/MAMP/htdocs/misc/leamas/kits/commands/claude-sub-agent",
+            "repo_url": "https://github.com/zhsama/claude-sub-agent",
+            "has_readme": true,
+            "last_modified": "2025-08-01 07:58:36",
+            "size": 446929,
+            "size_human": "436.45 KB"
+        }
+    ],
+    "summary": {
+        "total_agent_kits": 7,
+        "total_command_kits": 2,
+        "total_size": 18066192,
+        "total_size_human": "17.23 MB"
+    }
+}

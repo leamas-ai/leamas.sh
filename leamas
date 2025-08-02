@@ -1,0 +1,471 @@
+#!/bin/bash
+
+set -euo pipefail
+
+VERSION="0.0.1"
+SCRIPT_NAME="leamas"
+KITS_URL="https://leamas.sh/kits"
+CACHE_DIR="$HOME/.cache/leamas"
+
+print_usage() {
+    cat << EOF
+Usage: $SCRIPT_NAME [OPTIONS] <KIT>
+
+Install kits for Claude (agents, commands, etc.).
+
+Options:
+    -g, --global       Install kits globally to ~/.claude/{kit_type}/leamas/{kit_name}
+    -h, --help         Show this help message
+    -v, --version      Show version information
+
+Arguments:
+    KIT                Kit in format: {type}@{name} (e.g., agent@wshobson, command@helpers)
+
+Examples:
+    $SCRIPT_NAME agent@wshobson
+    $SCRIPT_NAME -g agent@wshobson
+    $SCRIPT_NAME command@helpers
+
+Available kits:
+$(list_available_kits | sed 's/^/    /')
+
+EOF
+}
+
+print_version() {
+    echo "$SCRIPT_NAME version $VERSION"
+}
+
+log() {
+    echo "==> $1" >&2
+}
+
+error() {
+    echo "Error: $1" >&2
+    exit 1
+}
+
+fetch_kit_list() {
+    local cache_file="$CACHE_DIR/kit_list.txt"
+    
+    # Create cache directory if it doesn't exist
+    mkdir -p "$CACHE_DIR"
+    
+    # Check if cache exists and is fresh (less than 1 hour old)
+    if [[ -f "$cache_file" ]] && [[ $(find "$cache_file" -mmin -60 2>/dev/null | wc -l) -gt 0 ]]; then
+        cat "$cache_file"
+        return 0
+    fi
+    
+    # Fetch kit list from server
+    log "Fetching available kits..."
+    
+    # Initialize empty cache file
+    > "$cache_file"
+    
+    # Try multiple approaches to get the kit list
+    local success=false
+    
+    # Method 1: Try to get a JSON manifest if it exists
+    if curl -sf "$KITS_URL/manifest.json" 2>/dev/null | grep -o '"[^"]*@[^"]*"' | tr -d '"' >> "$cache_file"; then
+        success=true
+    fi
+    
+    # Method 2: Try to get a simple text list
+    if curl -sf "$KITS_URL/list.txt" 2>/dev/null >> "$cache_file"; then
+        success=true
+    fi
+    
+    # Method 3: Try to parse directory listings
+    # Check agents directory
+    if curl -sf "$KITS_URL/agents/" 2>/dev/null | grep -o 'href="[^/"]*[^./]"' | cut -d'"' -f2 | grep -v '^\.$\|^\.\.$' | sed 's/^/agent@/' >> "$cache_file"; then
+        success=true
+    fi
+    
+    # Check commands directory
+    if curl -sf "$KITS_URL/commands/" 2>/dev/null | grep -o 'href="[^/"]*[^./]"' | cut -d'"' -f2 | grep -v '^\.$\|^\.\.$' | sed 's/^/command@/' >> "$cache_file"; then
+        success=true
+    fi
+    
+    # Method 4: Try common directory listing patterns
+    for pattern in 'href="\([^/"]*\)/"' 'href="\([^"]*\)"' '>\([^<]*\)/<'; do
+        # Try agents
+        if curl -sf "$KITS_URL/agents/" 2>/dev/null | sed -n "s/.*$pattern.*/\1/p" | grep -v '^\.$\|^\.\.$\|^$' | sed 's/^/agent@/' >> "$cache_file"; then
+            success=true
+        fi
+        # Try commands
+        if curl -sf "$KITS_URL/commands/" 2>/dev/null | sed -n "s/.*$pattern.*/\1/p" | grep -v '^\.$\|^\.\.$\|^$' | sed 's/^/command@/' >> "$cache_file"; then
+            success=true
+        fi
+    done
+    
+    # Remove duplicates and empty lines
+    if [[ -f "$cache_file" ]]; then
+        sort "$cache_file" | uniq | grep -v '^$' > "$cache_file.tmp" && mv "$cache_file.tmp" "$cache_file"
+    fi
+    
+    if [[ -s "$cache_file" ]]; then
+        cat "$cache_file"
+    else
+        # If we can't fetch the list, provide a helpful message but don't fail completely
+        echo "# Unable to fetch kit list from $KITS_URL" > "$cache_file"
+        echo "# You can still install kits directly if you know their names" >> "$cache_file"
+        echo "# Example: $SCRIPT_NAME agent@example" >> "$cache_file"
+        return 1
+    fi
+}
+
+list_available_kits() {
+    local kits
+    if kits=$(fetch_kit_list); then
+        if [[ -n "$kits" ]]; then
+            echo "$kits"
+        else
+            echo "No kits available"
+        fi
+    else
+        echo "Unable to fetch kit list - check your internet connection"
+    fi
+}
+
+determine_target_dir() {
+    local global_flag="$1"
+    local kit_type="$2"
+    local kit_name="$3"
+    
+    if [[ "$global_flag" == "true" ]]; then
+        echo "$HOME/.claude/${kit_type}s/leamas/$kit_name"
+    else
+        echo ".claude/${kit_type}s/leamas/$kit_name"
+    fi
+}
+
+create_target_dir() {
+    local target_dir="$1"
+    
+    # Extract the .claude directory path (either .claude or ~/.claude)
+    local claude_dir
+    if [[ "$target_dir" =~ ^(.*/)?\.claude/ ]]; then
+        claude_dir="${BASH_REMATCH[0]%.claude/*}.claude"
+    else
+        error "Invalid target directory: $target_dir"
+    fi
+    
+    # Check if .claude directory exists
+    if [[ ! -d "$claude_dir" ]]; then
+        echo ""
+        echo "Warning: The Claude directory '$claude_dir' does not exist."
+        echo "This may indicate that Claude is not installed or you're in the wrong directory."
+        echo ""
+        read -p "Do you want to create '$claude_dir' and continue? (y/N) " -n 1 -r
+        echo ""
+        
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log "Installation cancelled. Please ensure you're in the correct directory or Claude is installed."
+            exit 1
+        fi
+        
+        log "Creating Claude directory: $claude_dir"
+        mkdir -p "$claude_dir"
+    fi
+    
+    # Now create the full target directory
+    if [[ ! -d "$target_dir" ]]; then
+        log "Creating directory: $target_dir"
+        mkdir -p "$target_dir"
+    fi
+}
+
+download_kit() {
+    local kit_type="$1"
+    local kit_name="$2"
+    local kit_cache_dir="$CACHE_DIR/kits/${kit_type}s/$kit_name"
+    
+    # Create cache directory for this kit
+    mkdir -p "$kit_cache_dir"
+    
+    # Check if kit is already cached and fresh (less than 1 day old)
+    if [[ -d "$kit_cache_dir" && -n "$(find "$kit_cache_dir" -name "*.md" -mtime -1 2>/dev/null)" ]]; then
+        echo "$kit_cache_dir"
+        return 0
+    fi
+    
+    log "Downloading $kit_type kit: $kit_name"
+    
+    # Clean up existing cache if it exists but is stale
+    if [[ -d "$kit_cache_dir" ]]; then
+        rm -rf "$kit_cache_dir"
+        mkdir -p "$kit_cache_dir"
+    fi
+    
+    # Download kit structure - we'll try different approaches
+    local kit_url="$KITS_URL/${kit_type}s/$kit_name"
+    local download_success=false
+    
+    # Method 1: Try to download a tarball or zip if available
+    if curl -sf "$kit_url.tar.gz" -o "$kit_cache_dir.tar.gz" 2>/dev/null; then
+        if tar -xzf "$kit_cache_dir.tar.gz" -C "$(dirname "$kit_cache_dir")" 2>/dev/null; then
+            download_success=true
+        fi
+        rm -f "$kit_cache_dir.tar.gz"
+    elif curl -sf "$kit_url.zip" -o "$kit_cache_dir.zip" 2>/dev/null; then
+        if unzip -q "$kit_cache_dir.zip" -d "$(dirname "$kit_cache_dir")" 2>/dev/null; then
+            download_success=true
+        fi
+        rm -f "$kit_cache_dir.zip"
+    fi
+    
+    # Method 2: Try to download individual files by parsing directory listing
+    if [[ "$download_success" == "false" ]]; then
+        local file_count=0
+        
+        # Try to get file list from main directory
+        local file_list
+        if file_list=$(curl -sf "$kit_url/" 2>/dev/null | grep -o 'href="[^"]*\.md"' | cut -d'"' -f2); then
+            while IFS= read -r file; do
+                if [[ -n "$file" ]]; then
+                    if curl -sf "$kit_url/$file" -o "$kit_cache_dir/$file" 2>/dev/null; then
+                        ((file_count++))
+                    fi
+                fi
+            done <<< "$file_list"
+        fi
+        
+        # Also try to download from common subdirectories
+        for subdir in "agents" "commands"; do
+            local check_url="$kit_url/$subdir"
+            mkdir -p "$kit_cache_dir/$subdir"
+            
+            if file_list=$(curl -sf "$check_url/" 2>/dev/null | grep -o 'href="[^"]*\.md"' | cut -d'"' -f2); then
+                while IFS= read -r file; do
+                    if [[ -n "$file" ]]; then
+                        if curl -sf "$check_url/$file" -o "$kit_cache_dir/$subdir/$file" 2>/dev/null; then
+                            ((file_count++))
+                        fi
+                    fi
+                done <<< "$file_list"
+            fi
+        done
+        
+        if [[ $file_count -gt 0 ]]; then
+            download_success=true
+        fi
+    fi
+    
+    # Verify we downloaded something
+    if [[ "$download_success" == "false" ]] || [[ -z "$(find "$kit_cache_dir" -name "*.md" -type f 2>/dev/null)" ]]; then
+        # Clean up failed download
+        rm -rf "$kit_cache_dir"
+        error "Failed to download any files for $kit_type kit: $kit_name"
+    fi
+    
+    echo "$kit_cache_dir"
+}
+
+parse_kit() {
+    local kit="$1"
+    
+    if [[ ! "$kit" =~ ^([^@]+)@(.+)$ ]]; then
+        error "Invalid kit format. Use: {type}@{name} (e.g., agent@wshobson, command@helpers)"
+    fi
+    
+    local kit_type="${BASH_REMATCH[1]}"
+    local kit_name="${BASH_REMATCH[2]}"
+    
+    # Convert singular to plural for directory names
+    local kit_dir="$kit_type"
+    if [[ "$kit_type" == "agent" ]]; then
+        kit_dir="agents"
+    elif [[ "$kit_type" == "command" ]]; then
+        kit_dir="commands"
+    fi
+    
+    # Download the kit to local cache
+    local kit_path
+    kit_path=$(download_kit "$kit_type" "$kit_name")
+    
+    if [[ ! -d "$kit_path" ]]; then
+        error "Failed to download kit '$kit_name' of type '$kit_type'"
+    fi
+    
+    # Return both path and parsed components
+    echo "$kit_path|$kit_type|$kit_name"
+}
+
+is_valid_md_file() {
+    local file="$1"
+    local basename
+    basename=$(basename "$file")
+    
+    # Skip README.md, LICENSE, and other non-agent files
+    if [[ "$basename" == "README.md" || "$basename" == "LICENSE" || "$basename" == "CLAUDE.md" || "$basename" == "CONTRIBUTING.md" ]]; then
+        return 1
+    fi
+    
+    # Check if file starts with "---"
+    if head -n 1 "$file" | grep -q "^---"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+analyze_kit_structure() {
+    local kit_path="$1"
+    local kit_type="$2"
+    
+    local structure=""
+    local source_path=""
+    
+    # Check for dedicated agents/commands subdirectory
+    if [[ "$kit_type" == "agent" && -d "$kit_path/agents" ]]; then
+        structure="dedicated"
+        source_path="$kit_path/agents"
+    elif [[ "$kit_type" == "command" && -d "$kit_path/commands" ]]; then
+        structure="dedicated"
+        source_path="$kit_path/commands"
+    else
+        # Count .md files in main directory vs subdirectories
+        local main_md_count
+        local sub_md_count
+        
+        main_md_count=$(find "$kit_path" -maxdepth 1 -name "*.md" -type f | wc -l)
+        sub_md_count=$(find "$kit_path" -mindepth 2 -name "*.md" -type f | wc -l)
+        
+        if [[ "$sub_md_count" -gt "$main_md_count" ]]; then
+            structure="organized"
+            source_path="$kit_path"
+        elif [[ "$main_md_count" -gt 0 ]]; then
+            structure="flat"
+            source_path="$kit_path"
+        else
+            structure="unknown"
+            source_path="$kit_path"
+        fi
+    fi
+    
+    echo "$structure|$source_path"
+}
+
+install_kit() {
+    local kit_path="$1"
+    local target_dir="$2"
+    local kit_type="$3"
+    local kit_name="$4"
+    
+    log "Installing $kit_type kit: $kit_name"
+    
+    # Analyze kit structure
+    local structure_info
+    structure_info=$(analyze_kit_structure "$kit_path" "$kit_type")
+    
+    local structure source_path
+    IFS='|' read -r structure source_path <<< "$structure_info"
+    
+    log "Detected kit structure: $structure"
+    
+    local md_count=0
+    
+    case "$structure" in
+        "dedicated")
+            # Copy from dedicated agents/commands subdirectory
+            while IFS= read -r -d '' file; do
+                if is_valid_md_file "$file"; then
+                    local basename
+                    basename=$(basename "$file")
+                    cp "$file" "$target_dir/$basename"
+                    ((md_count++))
+                    log "Installed: $basename"
+                fi
+            done < <(find "$source_path" -name "*.md" -type f -print0)
+            ;;
+        "flat")
+            # Copy from main directory only
+            while IFS= read -r -d '' file; do
+                if is_valid_md_file "$file"; then
+                    local basename
+                    basename=$(basename "$file")
+                    cp "$file" "$target_dir/$basename"
+                    ((md_count++))
+                    log "Installed: $basename"
+                fi
+            done < <(find "$source_path" -maxdepth 1 -name "*.md" -type f -print0)
+            ;;
+        "organized")
+            # Copy from all subdirectories (recursive)
+            while IFS= read -r -d '' file; do
+                if is_valid_md_file "$file"; then
+                    local basename
+                    basename=$(basename "$file")
+                    cp "$file" "$target_dir/$basename"
+                    ((md_count++))
+                    log "Installed: $basename"
+                fi
+            done < <(find "$source_path" -name "*.md" -type f -print0)
+            ;;
+        *)
+            error "Unknown kit structure for $kit_type kit: $kit_name"
+            ;;
+    esac
+    
+    if [[ "$md_count" -eq 0 ]]; then
+        error "No valid .md files found in $kit_type kit: $kit_name"
+    fi
+    
+    log "Successfully installed $md_count file(s) from $kit_type kit: $kit_name"
+}
+
+main() {
+    local global_flag="false"
+    local kit=""
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -g|--global)
+                global_flag="true"
+                shift
+                ;;
+            -h|--help)
+                print_usage
+                exit 0
+                ;;
+            -v|--version)
+                print_version
+                exit 0
+                ;;
+            -*)
+                error "Unknown option: $1"
+                ;;
+            *)
+                if [[ -n "$kit" ]]; then
+                    error "Multiple kits provided. Please specify only one."
+                fi
+                kit="$1"
+                shift
+                ;;
+        esac
+    done
+    
+    if [[ -z "$kit" ]]; then
+        error "Kit is required. Use -h for help."
+    fi
+    
+    # Parse kit and extract components
+    local kit_info
+    kit_info=$(parse_kit "$kit")
+    
+    local kit_path kit_type kit_name
+    IFS='|' read -r kit_path kit_type kit_name <<< "$kit_info"
+    
+    local target_dir
+    target_dir=$(determine_target_dir "$global_flag" "$kit_type" "$kit_name")
+    
+    create_target_dir "$target_dir"
+    
+    install_kit "$kit_path" "$target_dir" "$kit_type" "$kit_name"
+    
+    log "Installation complete! $kit_type kit is available in: $target_dir"
+}
+
+main "$@"
