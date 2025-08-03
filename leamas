@@ -170,11 +170,11 @@ download_kit() {
         mkdir -p "$kit_cache_dir"
     fi
     
-    # Download kit structure - we'll try different approaches
+    # Download kit structure
     local kit_url="$KITS_URL/${kit_type}s/$kit_name"
     local download_success=false
     
-    # Method 1: Try to download a tarball or zip if available
+    # Try to download a tarball or zip if available
     if curl -sf "$kit_url.tar.gz" -o "$kit_cache_dir.tar.gz" 2>/dev/null; then
         if tar -xzf "$kit_cache_dir.tar.gz" -C "$(dirname "$kit_cache_dir")" 2>/dev/null; then
             download_success=true
@@ -185,43 +185,6 @@ download_kit() {
             download_success=true
         fi
         rm -f "$kit_cache_dir.zip"
-    fi
-    
-    # Method 2: Try to download individual files by parsing directory listing
-    if [[ "$download_success" == "false" ]]; then
-        local file_count=0
-        
-        # Try to get file list from main directory
-        local file_list
-        if file_list=$(curl -sf "$kit_url/" 2>/dev/null | grep -o 'href="[^"]*\.md"' | cut -d'"' -f2); then
-            while IFS= read -r file; do
-                if [[ -n "$file" ]]; then
-                    if curl -sf "$kit_url/$file" -o "$kit_cache_dir/$file" 2>/dev/null; then
-                        ((file_count++))
-                    fi
-                fi
-            done <<< "$file_list"
-        fi
-        
-        # Also try to download from common subdirectories
-        for subdir in "agents" "commands"; do
-            local check_url="$kit_url/$subdir"
-            mkdir -p "$kit_cache_dir/$subdir"
-            
-            if file_list=$(curl -sf "$check_url/" 2>/dev/null | grep -o 'href="[^"]*\.md"' | cut -d'"' -f2); then
-                while IFS= read -r file; do
-                    if [[ -n "$file" ]]; then
-                        if curl -sf "$check_url/$file" -o "$kit_cache_dir/$subdir/$file" 2>/dev/null; then
-                            ((file_count++))
-                        fi
-                    fi
-                done <<< "$file_list"
-            fi
-        done
-        
-        if [[ $file_count -gt 0 ]]; then
-            download_success=true
-        fi
     fi
     
     # Verify we downloaded something

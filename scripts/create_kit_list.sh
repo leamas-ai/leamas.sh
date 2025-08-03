@@ -25,6 +25,35 @@ error() {
     echo -e "${RED}✗${NC} $1"
 }
 
+# Function to create tarball for a kit
+create_kit_tarball() {
+    local kit_dir="$1"
+    local kit_type="$2"
+    local kit_name="$3"
+    local output_path="kits/${kit_type}s/${kit_name}.tar.gz"
+    
+    # Create temporary directory for clean tarball
+    local temp_dir=$(mktemp -d)
+    local kit_temp="$temp_dir/$kit_name"
+    mkdir -p "$kit_temp"
+    
+    # Copy only .md files to temp directory
+    find "$kit_dir" -name "*.md" -type f | while IFS= read -r file; do
+        cp "$file" "$kit_temp/"
+    done
+    
+    # Create tarball if there are .md files
+    if [[ -n "$(find "$kit_temp" -name "*.md" -type f)" ]]; then
+        tar -czf "$output_path" -C "$temp_dir" "$kit_name" 2>/dev/null
+        success "Created tarball: $output_path"
+    else
+        warning "No .md files found in $kit_name, skipping tarball"
+    fi
+    
+    # Clean up
+    rm -rf "$temp_dir"
+}
+
 # Main function
 main() {
     local output_file="kits/kit_list.txt"
@@ -44,28 +73,30 @@ main() {
     local agent_count=0
     local command_count=0
     
-    # Add agents first (sorted)
+    # Add agents first (sorted) and create tarballs
     if [[ -d "kits/agents" ]]; then
-        log "Scanning agents..."
+        log "Scanning and packaging agents..."
         while IFS= read -r -d '' agent_dir; do
             local agent_name=$(basename "$agent_dir")
             if [[ -n "$agent_name" && "$agent_name" != "." && "$agent_name" != ".." ]]; then
                 echo "agent@$agent_name" >> "$temp_file"
                 ((agent_count++))
                 success "Found agent: $agent_name"
+                create_kit_tarball "$agent_dir" "agent" "$agent_name"
             fi
         done < <(find kits/agents -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null | sort -z)
     fi
     
-    # Add commands second (sorted)
+    # Add commands second (sorted) and create tarballs
     if [[ -d "kits/commands" ]]; then
-        log "Scanning commands..."
+        log "Scanning and packaging commands..."
         while IFS= read -r -d '' command_dir; do
             local command_name=$(basename "$command_dir")
             if [[ -n "$command_name" && "$command_name" != "." && "$command_name" != ".." ]]; then
                 echo "command@$command_name" >> "$temp_file"
                 ((command_count++))
                 success "Found command: $command_name"
+                create_kit_tarball "$command_dir" "command" "$command_name"
             fi
         done < <(find kits/commands -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null | sort -z)
     fi
@@ -93,25 +124,32 @@ main() {
     fi
     
     echo
-    log "Kit list is ready for deployment to leamas.sh/kits/kit_list.txt"
+    log "Kit list and tarballs are ready for deployment!"
+    log "Files created:"
+    echo "  - kits/kit_list.txt"
+    echo "  - kits/agents/*.tar.gz"
+    echo "  - kits/commands/*.tar.gz"
 }
 
 # Show usage if help requested
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     echo "Usage: $0"
     echo
-    echo "This script creates a kit_list.txt file based on directories found in:"
-    echo "  - kits/agents/"
-    echo "  - kits/commands/"
+    echo "This script:"
+    echo "  1. Creates a kit_list.txt file from directories in kits/agents/ and kits/commands/"
+    echo "  2. Creates .tar.gz archives for each kit containing only .md files"
     echo
-    echo "Output format:"
+    echo "Output files:"
+    echo "  - kits/kit_list.txt (sorted list of available kits)"
+    echo "  - kits/agents/{kit-name}.tar.gz (one for each agent kit)"
+    echo "  - kits/commands/{kit-name}.tar.gz (one for each command kit)"
+    echo
+    echo "Kit list format:"
     echo "  agent@kit-name"
     echo "  command@kit-name"
     echo
-    echo "The list is sorted with agents first, then commands."
+    echo "The tarballs are created in the same location where the leamas script expects them."
     echo "Run this script from the project root directory."
-    echo
-    echo "The generated file will be: kits/kit_list.txt"
     exit 0
 fi
 
