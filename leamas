@@ -251,42 +251,6 @@ is_valid_md_file() {
     fi
 }
 
-analyze_kit_structure() {
-    local kit_path="$1"
-    local kit_type="$2"
-    
-    local structure=""
-    local source_path=""
-    
-    # Check for dedicated agents/commands subdirectory
-    if [[ "$kit_type" == "agent" && -d "$kit_path/agents" ]]; then
-        structure="dedicated"
-        source_path="$kit_path/agents"
-    elif [[ "$kit_type" == "command" && -d "$kit_path/commands" ]]; then
-        structure="dedicated"
-        source_path="$kit_path/commands"
-    else
-        # Count .md files in main directory vs subdirectories
-        local main_md_count
-        local sub_md_count
-        
-        main_md_count=$(find "$kit_path" -maxdepth 1 -name "*.md" -type f | wc -l)
-        sub_md_count=$(find "$kit_path" -mindepth 2 -name "*.md" -type f | wc -l)
-        
-        if [[ "$sub_md_count" -gt "$main_md_count" ]]; then
-            structure="organized"
-            source_path="$kit_path"
-        elif [[ "$main_md_count" -gt 0 ]]; then
-            structure="flat"
-            source_path="$kit_path"
-        else
-            structure="unknown"
-            source_path="$kit_path"
-        fi
-    fi
-    
-    echo "$structure|$source_path"
-}
 
 install_kit() {
     local kit_path="$1"
@@ -296,20 +260,13 @@ install_kit() {
     
     log "Installing $kit_type kit: $kit_name"
     
-    # Analyze kit structure
-    local structure_info
-    structure_info=$(analyze_kit_structure "$kit_path" "$kit_type")
-    
-    local structure source_path
-    IFS='|' read -r structure source_path <<< "$structure_info"
-    
-    log "Detected kit structure: $structure"
-    
     local md_count=0
     
-    case "$structure" in
-        "dedicated")
-            # Copy from dedicated agents/commands subdirectory
+    # Simple logic based on kit type
+    if [[ "$kit_type" == "agent" ]]; then
+        if [[ -d "$kit_path/agents" ]]; then
+            # If agents/ directory exists, use ONLY files from there
+            log "Installing from agents/ directory"
             while IFS= read -r -d '' file; do
                 if is_valid_md_file "$file"; then
                     local basename
@@ -318,10 +275,24 @@ install_kit() {
                     ((md_count++))
                     log "Installed: $basename"
                 fi
-            done < <(find "$source_path" -name "*.md" -type f -print0)
-            ;;
-        "flat")
-            # Copy from main directory only
+            done < <(find "$kit_path/agents" -name "*.md" -type f -print0)
+        else
+            # Otherwise, get .md files from root level only (not from commands/)
+            log "Installing from root directory (excluding commands/)"
+            while IFS= read -r -d '' file; do
+                if [[ ! "$file" =~ /commands/ ]] && is_valid_md_file "$file"; then
+                    local basename
+                    basename=$(basename "$file")
+                    cp "$file" "$target_dir/$basename"
+                    ((md_count++))
+                    log "Installed: $basename"
+                fi
+            done < <(find "$kit_path" -name "*.md" -type f -print0)
+        fi
+    elif [[ "$kit_type" == "command" ]]; then
+        if [[ -d "$kit_path/commands" ]]; then
+            # If commands/ directory exists, use ONLY files from there
+            log "Installing from commands/ directory"
             while IFS= read -r -d '' file; do
                 if is_valid_md_file "$file"; then
                     local basename
@@ -330,24 +301,23 @@ install_kit() {
                     ((md_count++))
                     log "Installed: $basename"
                 fi
-            done < <(find "$source_path" -maxdepth 1 -name "*.md" -type f -print0)
-            ;;
-        "organized")
-            # Copy from all subdirectories (recursive)
+            done < <(find "$kit_path/commands" -name "*.md" -type f -print0)
+        else
+            # Otherwise, get .md files from root level only (not from agents/)
+            log "Installing from root directory (excluding agents/)"
             while IFS= read -r -d '' file; do
-                if is_valid_md_file "$file"; then
+                if [[ ! "$file" =~ /agents/ ]] && is_valid_md_file "$file"; then
                     local basename
                     basename=$(basename "$file")
                     cp "$file" "$target_dir/$basename"
                     ((md_count++))
                     log "Installed: $basename"
                 fi
-            done < <(find "$source_path" -name "*.md" -type f -print0)
-            ;;
-        *)
-            error "Unknown kit structure for $kit_type kit: $kit_name"
-            ;;
-    esac
+            done < <(find "$kit_path" -name "*.md" -type f -print0)
+        fi
+    else
+        error "Unknown kit type: $kit_type"
+    fi
     
     if [[ "$md_count" -eq 0 ]]; then
         error "No valid .md files found in $kit_type kit: $kit_name"

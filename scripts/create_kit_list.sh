@@ -37,9 +37,19 @@ create_kit_tarball() {
     local kit_temp="$temp_dir/$kit_name"
     mkdir -p "$kit_temp"
     
-    # Copy only .md files to temp directory
+    # Copy .md files preserving directory structure
     find "$kit_dir" -name "*.md" -type f | while IFS= read -r file; do
-        cp "$file" "$kit_temp/"
+        # Get relative path from kit directory
+        local rel_path="${file#$kit_dir/}"
+        local rel_dir=$(dirname "$rel_path")
+        
+        # Create subdirectory if needed
+        if [[ "$rel_dir" != "." ]]; then
+            mkdir -p "$kit_temp/$rel_dir"
+        fi
+        
+        # Copy file preserving structure
+        cp "$file" "$kit_temp/$rel_path"
     done
     
     # Create tarball if there are .md files
