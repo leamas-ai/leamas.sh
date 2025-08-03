@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+                           http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- Kits Index Pages -->
+  <url>
+    <loc>https://leamas.sh/kits</loc>
+    <lastmod>2025-08-03T08:50:33Z</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://leamas.sh/kits/agents</loc>
+    <lastmod>2025-08-03T08:50:33Z</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://leamas.sh/kits/commands</loc>
+    <lastmod>2025-08-03T08:50:33Z</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Agent Kit Tarballs -->
+  <url>
+    <loc>https://leamas.sh/kits/agents/awesome-claude-agents.tar.gz</loc>
+    <lastmod>2025-08-03T07:32:44Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://leamas.sh/kits/agents/awesome-claude-code-agents.tar.gz</loc>
+    <lastmod>2025-08-03T07:32:44Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://leamas.sh/kits/agents/claude-agents.tar.gz</loc>
+    <lastmod>2025-08-03T07:32:44Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://leamas.sh/kits/agents/claude-code-sub-agents.tar.gz</loc>
+    <lastmod>2025-08-03T07:32:45Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://leamas.sh/kits/agents/claude-code-subagents.tar.gz</loc>
+    <lastmod>2025-08-03T07:32:45Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://leamas.sh/kits/agents/claude-sub-agent.tar.gz</loc>
+    <lastmod>2025-08-03T07:32:46Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://leamas.sh/kits/agents/wshobson.tar.gz</loc>
+    <lastmod>2025-08-03T07:32:46Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Command Kit Tarballs -->
+  <url>
+    <loc>https://leamas.sh/kits/commands/claude-code-requirements-builder.tar.gz</loc>
+    <lastmod>2025-08-03T07:32:46Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://leamas.sh/kits/commands/claude-sub-agent.tar.gz</loc>
+    <lastmod>2025-08-03T07:32:46Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+</urlset>

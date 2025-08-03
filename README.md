@@ -37,8 +37,10 @@ $ leamas --help
 ### Basic Commands
 
 ```bash
-leamas --help                    # Show available kits and usage
+leamas --help                    # Show usage and options
+leamas --list                    # List all available kits
 leamas --version                 # Show version
+leamas --update                  # Check for and install updates
 leamas agent@<kit-name>         # Install agent kit locally
 leamas -g agent@<kit-name>      # Install agent kit globally
 leamas command@<kit-name>       # Install command kit locally
@@ -70,7 +72,10 @@ leamas -g agent@database
 leamas command@automation
 
 # See all available kits
-leamas --help
+leamas --list
+
+# Check for updates
+leamas --update
 ```
 
 ## How It Works
@@ -79,10 +84,11 @@ leamas --help
 2. **Smart caching** - Caches downloads for 24 hours for faster reinstalls
 3. **Correct placement** - Puts files exactly where Claude expects them
 4. **No dependencies** - Just bash and curl, nothing else
+5. **Auto-updates** - Check for new versions with `leamas --update`
 
 ## Available Kits
 
-Browse available kits at [leamas.sh](https://leamas.sh) or run `leamas --help` to see the current list.
+Browse available kits at [leamas.sh](https://leamas.sh) or run `leamas --list` to see the current list.
 
 ### Agent Kits
 - Collections of specialized AI agents

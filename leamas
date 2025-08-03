@@ -7,48 +7,76 @@ SCRIPT_NAME="leamas"
 KITS_URL="https://leamas.sh/kits"
 CACHE_DIR="$HOME/leamas/.cache"
 
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[0;37m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m' # No Color
+
+# Unicode characters
+CHECK="✓"
+CROSS="✗"
+ARROW="→"
+DOT="•"
+PACKAGE="📦"
+DOWNLOAD="⬇"
+GLOBE="🌐"
+SPARKLE="✨"
+ROCKET="🚀"
+WARN="⚠️"
+INFO="ℹ"
+
 print_usage() {
-    cat << EOF
-Usage: $SCRIPT_NAME [OPTIONS] <KIT>
+echo -e "
+${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}
+${BOLD}${CYAN}║${NC}                     ${BOLD}${WHITE}LEAMAS KIT INSTALLER${NC}                      ${BOLD}${CYAN}║${NC}
+${BOLD}${CYAN}║${NC}               ${DIM}Install agents and commands for Claude${NC}          ${BOLD}${CYAN}║${NC}
+${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}
 
-Install kits for Claude (agents, commands, etc.).
+${BOLD}${YELLOW}Usage:${NC} ${GREEN}$SCRIPT_NAME${NC} [${CYAN}OPTIONS${NC}] ${PURPLE}<KIT>${NC}
 
-Options:
-    -g, --global       Install kits globally to ~/.claude/{kit_type}/leamas/{kit_name}
-    -h, --help         Show this help message
-    -v, --version      Show version information
-    -u, --update       Check for and install updates to leamas
+${BOLD}${YELLOW}Options:${NC}
+    ${CYAN}-g${NC}, ${CYAN}--global${NC}       Install globally to ${DIM}~/.claude/{kit_type}/leamas/{kit_name}${NC}
+    ${CYAN}-h${NC}, ${CYAN}--help${NC}         Show this help message
+    ${CYAN}-l${NC}, ${CYAN}--list${NC}         List all available kits
+    ${CYAN}-v${NC}, ${CYAN}--version${NC}      Show version information
+    ${CYAN}-u${NC}, ${CYAN}--update${NC}       Check for and install updates
 
-Arguments:
-    KIT                Kit in format: {type}@{name} (e.g., agent@wshobson, command@helpers)
+${BOLD}${YELLOW}Arguments:${NC}
+    ${PURPLE}KIT${NC}                Kit format: ${DIM}{type}@{name}${NC} (e.g., ${GREEN}agent@wshobson${NC})
 
-Examples:
-    $SCRIPT_NAME agent@wshobson
-    $SCRIPT_NAME -g agent@wshobson
-    $SCRIPT_NAME command@helpers
-    $SCRIPT_NAME --update
+${BOLD}${YELLOW}Examples:${NC}
+    ${DIM}$ ${NC}${GREEN}$SCRIPT_NAME${NC} ${PURPLE}agent@wshobson${NC}
+    ${DIM}$ ${NC}${GREEN}$SCRIPT_NAME${NC} ${CYAN}-g${NC} ${PURPLE}agent@wshobson${NC}
+    ${DIM}$ ${NC}${GREEN}$SCRIPT_NAME${NC} ${PURPLE}command@helpers${NC}
+    ${DIM}$ ${NC}${GREEN}$SCRIPT_NAME${NC} ${CYAN}--list${NC}
 
-Available kits:
-$(list_available_kits | sed 's/^/    /')
+${DIM}${BLUE}Learn more at https://leamas.sh/${NC}
 
-EOF
+"
 }
 
 print_version() {
-    echo "$SCRIPT_NAME version $VERSION"
+    echo -e "${BOLD}${CYAN}$SCRIPT_NAME${NC} ${DIM}version${NC} ${GREEN}$VERSION${NC}"
 }
 
 log() {
-    echo "==> $1" >&2
+    echo -e "${BLUE}${ARROW}${NC} $1" >&2
 }
 
 error() {
-    echo "Error: $1" >&2
+    echo -e "${RED}${CROSS} Error:${NC} $1" >&2
     exit 1
 }
 
 success() {
-    echo "✓ $1" >&2
+    echo -e "${GREEN}${CHECK}${NC} $1" >&2
 }
 
 fetch_kit_list() {
@@ -64,7 +92,7 @@ fetch_kit_list() {
     fi
     
     # Fetch kit list from server
-    log "Fetching available kits..."
+    echo -e "${CYAN}${GLOBE}${NC} Fetching available kits..." >&2
     
     # Initialize empty cache file
     > "$cache_file"
@@ -97,12 +125,20 @@ list_available_kits() {
     local kits
     if kits=$(fetch_kit_list); then
         if [[ -n "$kits" ]]; then
-            echo "$kits"
+            echo -e "\n${BOLD}${GREEN}Available Kits:${NC}"
+            echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+            echo "$kits" | while IFS= read -r kit; do
+                if [[ ! "$kit" =~ ^# ]]; then
+                    echo -e "  ${CYAN}${DOT}${NC} ${PURPLE}$kit${NC}"
+                fi
+            done
+            echo -e "\n${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "\n${DIM}${INFO} View kit details at ${BLUE}https://leamas.sh/${NC}\n"
         else
-            echo "No kits available"
+            echo -e "${YELLOW}${WARN}${NC} No kits available"
         fi
     else
-        echo "Unable to fetch kit list - check your internet connection"
+        echo -e "${RED}${CROSS}${NC} Unable to fetch kit list - check your internet connection"
     fi
 }
 
@@ -132,24 +168,26 @@ create_target_dir() {
     # Check if .claude directory exists
     if [[ ! -d "$claude_dir" ]]; then
         echo ""
-        echo "Warning: The Claude directory '$claude_dir' does not exist."
-        echo "This may indicate that Claude is not installed or you're in the wrong directory."
+        echo -e "${YELLOW}${WARN} Warning:${NC} The Claude directory '${CYAN}$claude_dir${NC}' does not exist."
+        echo -e "${DIM}This may indicate that Claude is not installed or you're in the wrong directory.${NC}"
         echo ""
-        read -p "Do you want to create '$claude_dir' and continue? (y/N) " -n 1 -r
+        echo -ne "${BOLD}Do you want to create '${CYAN}$claude_dir${NC}' and continue? ${DIM}(y/N)${NC} "
+        read -n 1 -r
         echo ""
         
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log "Installation cancelled. Please ensure you're in the correct directory or Claude is installed."
+            echo -e "\n${YELLOW}${INFO}${NC} Installation cancelled."
+            echo -e "${DIM}Please ensure you're in the correct directory or Claude is installed.${NC}"
             exit 1
         fi
         
-        log "Creating Claude directory: $claude_dir"
+        echo -e "\n${BLUE}${ARROW}${NC} Creating Claude directory: ${CYAN}$claude_dir${NC}"
         mkdir -p "$claude_dir"
     fi
     
     # Now create the full target directory
     if [[ ! -d "$target_dir" ]]; then
-        log "Creating directory: $target_dir"
+        echo -e "${BLUE}${ARROW}${NC} Creating directory: ${CYAN}$target_dir${NC}"
         mkdir -p "$target_dir"
     fi
 }
@@ -168,7 +206,7 @@ download_kit() {
         return 0
     fi
     
-    log "Downloading $kit_type kit: $kit_name"
+    echo -e "${CYAN}${DOWNLOAD}${NC}  Downloading ${BOLD}$kit_type${NC} kit: ${PURPLE}$kit_name${NC}"
     
     # Clean up existing cache if it exists but is stale
     if [[ -d "$kit_cache_dir" ]]; then
@@ -179,6 +217,9 @@ download_kit() {
     # Download kit structure
     local kit_url="$KITS_URL/${kit_type}s/$kit_name"
     local download_success=false
+    
+    # Show progress indicator
+    echo -ne "${DIM}   Fetching kit files...${NC}"
     
     # Try to download a tarball or zip if available
     if curl -sf "$kit_url.tar.gz" -o "$kit_cache_dir.tar.gz" 2>/dev/null; then
@@ -192,6 +233,9 @@ download_kit() {
         fi
         rm -f "$kit_cache_dir.zip"
     fi
+    
+    # Clear the progress line
+    echo -ne "\r\033[K"
     
     # Verify we downloaded something
     if [[ "$download_success" == "false" ]] || [[ -z "$(find "$kit_cache_dir" -name "*.md" -type f 2>/dev/null)" ]]; then
@@ -258,7 +302,8 @@ install_kit() {
     local kit_type="$3"
     local kit_name="$4"
     
-    log "Installing $kit_type kit: $kit_name"
+    echo -e "\n${PACKAGE} Installing ${BOLD}$kit_type${NC} kit: ${PURPLE}$kit_name${NC}"
+    echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     
     local md_count=0
     
@@ -266,52 +311,52 @@ install_kit() {
     if [[ "$kit_type" == "agent" ]]; then
         if [[ -d "$kit_path/agents" ]]; then
             # If agents/ directory exists, use ONLY files from there
-            log "Installing from agents/ directory"
+            echo -e "${DIM}   Source: agents/ directory${NC}"
             while IFS= read -r -d '' file; do
                 if is_valid_md_file "$file"; then
                     local basename
                     basename=$(basename "$file")
                     cp "$file" "$target_dir/$basename"
                     ((md_count++))
-                    log "Installed: $basename"
+                    echo -e "   ${GREEN}${CHECK}${NC} Installed: ${CYAN}$basename${NC}"
                 fi
             done < <(find "$kit_path/agents" -name "*.md" -type f -print0)
         else
             # Otherwise, get .md files from root level only (not from commands/)
-            log "Installing from root directory (excluding commands/)"
+            echo -e "${DIM}   Source: root directory${NC}"
             while IFS= read -r -d '' file; do
                 if [[ ! "$file" =~ /commands/ ]] && is_valid_md_file "$file"; then
                     local basename
                     basename=$(basename "$file")
                     cp "$file" "$target_dir/$basename"
                     ((md_count++))
-                    log "Installed: $basename"
+                    echo -e "   ${GREEN}${CHECK}${NC} Installed: ${CYAN}$basename${NC}"
                 fi
             done < <(find "$kit_path" -name "*.md" -type f -print0)
         fi
     elif [[ "$kit_type" == "command" ]]; then
         if [[ -d "$kit_path/commands" ]]; then
             # If commands/ directory exists, use ONLY files from there
-            log "Installing from commands/ directory"
+            echo -e "${DIM}   Source: commands/ directory${NC}"
             while IFS= read -r -d '' file; do
                 if is_valid_md_file "$file"; then
                     local basename
                     basename=$(basename "$file")
                     cp "$file" "$target_dir/$basename"
                     ((md_count++))
-                    log "Installed: $basename"
+                    echo -e "   ${GREEN}${CHECK}${NC} Installed: ${CYAN}$basename${NC}"
                 fi
             done < <(find "$kit_path/commands" -name "*.md" -type f -print0)
         else
             # Otherwise, get .md files from root level only (not from agents/)
-            log "Installing from root directory (excluding agents/)"
+            echo -e "${DIM}   Source: root directory${NC}"
             while IFS= read -r -d '' file; do
                 if [[ ! "$file" =~ /agents/ ]] && is_valid_md_file "$file"; then
                     local basename
                     basename=$(basename "$file")
                     cp "$file" "$target_dir/$basename"
                     ((md_count++))
-                    log "Installed: $basename"
+                    echo -e "   ${GREEN}${CHECK}${NC} Installed: ${CYAN}$basename${NC}"
                 fi
             done < <(find "$kit_path" -name "*.md" -type f -print0)
         fi
@@ -319,11 +364,13 @@ install_kit() {
         error "Unknown kit type: $kit_type"
     fi
     
+    echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    
     if [[ "$md_count" -eq 0 ]]; then
         error "No valid .md files found in $kit_type kit: $kit_name"
     fi
     
-    log "Successfully installed $md_count file(s) from $kit_type kit: $kit_name"
+    echo -e "\n${GREEN}${SPARKLE}${NC} Successfully installed ${BOLD}$md_count${NC} file(s)"
 }
 
 check_for_update() {
@@ -331,7 +378,7 @@ check_for_update() {
     local github_branch="main"
     local remote_url="https://raw.githubusercontent.com/${github_repo}/${github_branch}/leamas"
     
-    log "Checking for updates..."
+    echo -e "${CYAN}${GLOBE}${NC} Checking for updates..."
     
     # Get current version
     local current_version="$VERSION"
@@ -345,10 +392,10 @@ check_for_update() {
     fi
     
     if [[ "$current_version" == "$remote_version" ]]; then
-        log "You're already running the latest version ($current_version)"
+        echo -e "${GREEN}${CHECK}${NC} You're already running the latest version ${DIM}(v$current_version)${NC}"
         return 0
     else
-        log "Update available: $current_version → $remote_version"
+        echo -e "${YELLOW}${INFO}${NC} Update available: ${RED}v$current_version${NC} ${ARROW} ${GREEN}v$remote_version${NC}"
         return 1
     fi
 }
@@ -372,16 +419,22 @@ update_leamas() {
         fi
     fi
     
-    log "Updating leamas..."
+    echo -e "\n${CYAN}${DOWNLOAD}${NC}  Updating ${BOLD}leamas${NC}..."
     
     # Download new version to temp file
     local temp_file
     temp_file=$(mktemp)
     
+    # Show progress
+    echo -ne "${DIM}   Downloading latest version...${NC}"
+    
     if ! curl -sSL -o "$temp_file" "$remote_url"; then
+        echo -ne "\r\033[K"
         rm -f "$temp_file"
         error "Failed to download update"
     fi
+    
+    echo -ne "\r\033[K"
     
     # Verify the download contains valid script
     if ! grep -q '^VERSION=' "$temp_file"; then
@@ -398,7 +451,8 @@ update_leamas() {
         rm -f "${script_path}.bak"  # Clean up backup on success
         local new_version
         new_version=$(grep '^VERSION=' "$script_path" | head -1 | cut -d'"' -f2)
-        success "Successfully updated to version $new_version"
+        echo -e "${GREEN}${SPARKLE}${NC} Successfully updated to version ${GREEN}v$new_version${NC}"
+        echo -e "\n${DIM}Run ${GREEN}leamas --version${NC} ${DIM}to verify the update${NC}"
     else
         # Restore backup on failure
         mv "${script_path}.bak" "$script_path"
@@ -426,16 +480,21 @@ main() {
                 print_version
                 exit 0
                 ;;
+            -l|--list)
+                list_available_kits
+                exit 0
+                ;;
             -u|--update)
                 if check_for_update; then
                     exit 0
                 else
-                    read -p "Do you want to update now? (y/N) " -n 1 -r
+                    echo -ne "\n${BOLD}Do you want to update now? ${DIM}(y/N)${NC} "
+                    read -n 1 -r
                     echo
                     if [[ $REPLY =~ ^[Yy]$ ]]; then
                         update_leamas
                     else
-                        log "Update cancelled"
+                        echo -e "\n${YELLOW}${INFO}${NC} Update cancelled"
                     fi
                     exit 0
                 fi
@@ -471,7 +530,11 @@ main() {
     
     install_kit "$kit_path" "$target_dir" "$kit_type" "$kit_name"
     
-    log "Installation complete! $kit_type kit is available in: $target_dir"
+    echo -e "\n${ROCKET} ${BOLD}Installation complete!${NC}"
+    echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${INFO} ${BOLD}$kit_type${NC} kit is available in:"
+    echo -e "   ${CYAN}$target_dir${NC}"
+    echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 }
 
 main "$@"
