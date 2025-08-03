@@ -5,7 +5,7 @@ set -euo pipefail
 VERSION="0.0.1"
 SCRIPT_NAME="leamas"
 KITS_URL="https://leamas.sh/kits"
-CACHE_DIR="$HOME/.cache/leamas"
+CACHE_DIR="$HOME/leamas/.cache"
 
 print_usage() {
     cat << EOF
@@ -66,38 +66,10 @@ fetch_kit_list() {
     # Try multiple approaches to get the kit list
     local success=false
     
-    # Method 1: Try to get a JSON manifest if it exists
-    if curl -sf "$KITS_URL/manifest.json" 2>/dev/null | grep -o '"[^"]*@[^"]*"' | tr -d '"' >> "$cache_file"; then
+    # Try to get a simple text list from the url
+    if curl -sf "$KITS_URL/kit_list.txt" 2>/dev/null >> "$cache_file"; then
         success=true
     fi
-    
-    # Method 2: Try to get a simple text list
-    if curl -sf "$KITS_URL/list.txt" 2>/dev/null >> "$cache_file"; then
-        success=true
-    fi
-    
-    # Method 3: Try to parse directory listings
-    # Check agents directory
-    if curl -sf "$KITS_URL/agents/" 2>/dev/null | grep -o 'href="[^/"]*[^./]"' | cut -d'"' -f2 | grep -v '^\.$\|^\.\.$' | sed 's/^/agent@/' >> "$cache_file"; then
-        success=true
-    fi
-    
-    # Check commands directory
-    if curl -sf "$KITS_URL/commands/" 2>/dev/null | grep -o 'href="[^/"]*[^./]"' | cut -d'"' -f2 | grep -v '^\.$\|^\.\.$' | sed 's/^/command@/' >> "$cache_file"; then
-        success=true
-    fi
-    
-    # Method 4: Try common directory listing patterns
-    for pattern in 'href="\([^/"]*\)/"' 'href="\([^"]*\)"' '>\([^<]*\)/<'; do
-        # Try agents
-        if curl -sf "$KITS_URL/agents/" 2>/dev/null | sed -n "s/.*$pattern.*/\1/p" | grep -v '^\.$\|^\.\.$\|^$' | sed 's/^/agent@/' >> "$cache_file"; then
-            success=true
-        fi
-        # Try commands
-        if curl -sf "$KITS_URL/commands/" 2>/dev/null | sed -n "s/.*$pattern.*/\1/p" | grep -v '^\.$\|^\.\.$\|^$' | sed 's/^/command@/' >> "$cache_file"; then
-            success=true
-        fi
-    done
     
     # Remove duplicates and empty lines
     if [[ -f "$cache_file" ]]; then

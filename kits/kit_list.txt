@@ -1,0 +1,9 @@
+agent@awesome-claude-agents
+agent@awesome-claude-code-agents
+agent@claude-agents
+agent@claude-code-sub-agents
+agent@claude-code-subagents
+agent@claude-sub-agent
+agent@wshobson
+command@claude-code-requirements-builder
+command@claude-sub-agent
