@@ -206,7 +206,7 @@ download_kit() {
         return 0
     fi
     
-    echo -e "${CYAN}${DOWNLOAD}${NC}  Downloading ${BOLD}$kit_type${NC} kit: ${PURPLE}$kit_name${NC}"
+    echo -e "${CYAN}${DOWNLOAD}${NC}  Downloading ${BOLD}$kit_type${NC} kit: ${PURPLE}$kit_name${NC}" >&2
     
     # Clean up existing cache if it exists but is stale
     if [[ -d "$kit_cache_dir" ]]; then
@@ -219,7 +219,7 @@ download_kit() {
     local download_success=false
     
     # Show progress indicator
-    echo -ne "${DIM}   Fetching kit files...${NC}"
+    echo -ne "${DIM}   Fetching kit files...${NC}" >&2
     
     # Try to download a tarball or zip if available
     if curl -sf "$kit_url.tar.gz" -o "$kit_cache_dir.tar.gz" 2>/dev/null; then
@@ -235,7 +235,7 @@ download_kit() {
     fi
     
     # Clear the progress line
-    echo -ne "\r\033[K"
+    echo -ne "\r\033[K" >&2
     
     # Verify we downloaded something
     if [[ "$download_success" == "false" ]] || [[ -z "$(find "$kit_cache_dir" -name "*.md" -type f 2>/dev/null)" ]]; then
