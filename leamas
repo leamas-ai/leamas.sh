@@ -17,6 +17,7 @@ Options:
     -g, --global       Install kits globally to ~/.claude/{kit_type}/leamas/{kit_name}
     -h, --help         Show this help message
     -v, --version      Show version information
+    -u, --update       Check for and install updates to leamas
 
 Arguments:
     KIT                Kit in format: {type}@{name} (e.g., agent@wshobson, command@helpers)
@@ -25,6 +26,7 @@ Examples:
     $SCRIPT_NAME agent@wshobson
     $SCRIPT_NAME -g agent@wshobson
     $SCRIPT_NAME command@helpers
+    $SCRIPT_NAME --update
 
 Available kits:
 $(list_available_kits | sed 's/^/    /')
@@ -43,6 +45,10 @@ log() {
 error() {
     echo "Error: $1" >&2
     exit 1
+}
+
+success() {
+    echo "✓ $1" >&2
 }
 
 fetch_kit_list() {
@@ -350,6 +356,87 @@ install_kit() {
     log "Successfully installed $md_count file(s) from $kit_type kit: $kit_name"
 }
 
+check_for_update() {
+    local github_repo="leamas-ai/leamas.sh"
+    local github_branch="main"
+    local remote_url="https://raw.githubusercontent.com/${github_repo}/${github_branch}/leamas"
+    
+    log "Checking for updates..."
+    
+    # Get current version
+    local current_version="$VERSION"
+    
+    # Fetch remote version
+    local remote_version
+    remote_version=$(curl -sf "$remote_url" 2>/dev/null | grep '^VERSION=' | head -1 | cut -d'"' -f2)
+    
+    if [[ -z "$remote_version" ]]; then
+        error "Failed to check for updates. Please check your internet connection."
+    fi
+    
+    if [[ "$current_version" == "$remote_version" ]]; then
+        log "You're already running the latest version ($current_version)"
+        return 0
+    else
+        log "Update available: $current_version → $remote_version"
+        return 1
+    fi
+}
+
+update_leamas() {
+    local github_repo="leamas-ai/leamas.sh"
+    local github_branch="main"
+    local remote_url="https://raw.githubusercontent.com/${github_repo}/${github_branch}/leamas"
+    local script_path="$0"
+    
+    # Resolve the actual script path if it's a symlink
+    if [[ -L "$script_path" ]]; then
+        # macOS doesn't have readlink -f, so we need a workaround
+        if command -v realpath >/dev/null 2>&1; then
+            script_path=$(realpath "$script_path")
+        else
+            # Fallback for systems without realpath
+            local dir=$(dirname "$script_path")
+            local base=$(basename "$script_path")
+            script_path=$(cd "$dir" && pwd -P)/"$base"
+        fi
+    fi
+    
+    log "Updating leamas..."
+    
+    # Download new version to temp file
+    local temp_file
+    temp_file=$(mktemp)
+    
+    if ! curl -sSL -o "$temp_file" "$remote_url"; then
+        rm -f "$temp_file"
+        error "Failed to download update"
+    fi
+    
+    # Verify the download contains valid script
+    if ! grep -q '^VERSION=' "$temp_file"; then
+        rm -f "$temp_file"
+        error "Downloaded file does not appear to be a valid leamas script"
+    fi
+    
+    # Backup current version
+    cp "$script_path" "${script_path}.bak"
+    
+    # Replace with new version
+    if cp "$temp_file" "$script_path" && chmod +x "$script_path"; then
+        rm -f "$temp_file"
+        rm -f "${script_path}.bak"  # Clean up backup on success
+        local new_version
+        new_version=$(grep '^VERSION=' "$script_path" | head -1 | cut -d'"' -f2)
+        success "Successfully updated to version $new_version"
+    else
+        # Restore backup on failure
+        mv "${script_path}.bak" "$script_path"
+        rm -f "$temp_file"
+        error "Failed to update leamas"
+    fi
+}
+
 main() {
     local global_flag="false"
     local kit=""
@@ -368,6 +455,20 @@ main() {
             -v|--version)
                 print_version
                 exit 0
+                ;;
+            -u|--update)
+                if check_for_update; then
+                    exit 0
+                else
+                    read -p "Do you want to update now? (y/N) " -n 1 -r
+                    echo
+                    if [[ $REPLY =~ ^[Yy]$ ]]; then
+                        update_leamas
+                    else
+                        log "Update cancelled"
+                    fi
+                    exit 0
+                fi
                 ;;
             -*)
                 error "Unknown option: $1"
