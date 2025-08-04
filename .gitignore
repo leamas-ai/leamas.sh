@@ -85,3 +85,7 @@ styles/
 img/
 .well-known/
 logs/
+llm.txt
+robots.txt
+sitemap.xml
+sitemap-kits.xml
