@@ -6,7 +6,7 @@
         {
             "name": "agents-historical-figures",
             "path": "/Applications/MAMP/htdocs/misc/leamas/kits/agents/agents-historical-figures",
-            "repo_url": https://github.com/leamas-ai/agents-historical-figures,
+            "repo_url": "https://github.com/leamas-ai/agents-historical-figures",
             "has_readme": true,
             "last_modified": "2025-08-04 21:42:26",
             "size": 35691,
