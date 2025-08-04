@@ -1,3 +1,4 @@
+agent@agents-historical-figures
 agent@awesome-claude-agents
 agent@awesome-claude-code-agents
 agent@claude-agents
