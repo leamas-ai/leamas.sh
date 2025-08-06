@@ -1,10 +1,10 @@
-#!/usr/bin/env php
+#!/opt/homebrew/bin/php
 <?php
 /**
  * get_meta.php - Collects git metadata from all kits and saves to JSON
  * 
  * This script traverses kits/agents/ and kits/commands/ directories,
- * extracts git remote information, and creates a metadata JSON file.
+ * extracts git remote information, and creates a metadata JSON file - data/kits_metadata.json
  */
 
 // Configuration

@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+#
+# creates the sitemap.xml file
+# creates the sitemap-kits.xml file
+#
+
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"

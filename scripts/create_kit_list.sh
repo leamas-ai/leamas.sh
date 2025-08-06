@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+#
+# creates the kits/kit_list.txt
+# creates the tarballs in kits/agents/ and kits/commands/
+#
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
